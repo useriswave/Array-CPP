@@ -92,7 +92,7 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const Array<U>& arr);
 
 private:
-    void moveTo(std::reference_wrapper<T*> other);
+    void moveTo(T* other);
     void resize();
 
 private:
@@ -117,7 +117,7 @@ void Array<T>::resize()
 }
 
 template <typename T>
-void Array<T>::moveTo(std::reference_wrapper<T*> other)
+void Array<T>::moveTo(T* other)
 {
     for (std::size_t i{}; i < m_length; ++i) {
         other[i] = std::move(m_array[i]);
@@ -190,7 +190,7 @@ void Array<T>::remove(const std::size_t index)
     }
 
     for (std::size_t i{index}; i < m_length-1; ++i) {
-        m_array[i] = std::move(m_array[i+1]);   // this is amazing
+        m_array[i] = std::move(m_array[i+1]);
     }
 
     --m_length;
@@ -219,9 +219,9 @@ void Array<T>::selectionSort(std::function<bool(const T& a, const T& b)> sortOrd
         return;
 
     for (std::size_t i{}; i < m_length; ++i) {
-        auto checkpoint { i };
+        auto checkpoint{ i };
 
-        for (std::size_t j{i}; j < m_length; ++j) {
+        for (std::size_t j{ i }; j < m_length; ++j) {
             if (sortOrder(m_array[j], m_array[checkpoint])) {
                 checkpoint = j;
             }
