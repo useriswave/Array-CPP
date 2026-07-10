@@ -1,6 +1,8 @@
-#pragma once
+#ifndef RANDOM_H
+#define RANDOM_H
 
 #include <random>
+#include <type_traits>
 
 namespace Random
 {
@@ -14,3 +16,4 @@ namespace Random
     }
 }
 
+#endif

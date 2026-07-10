@@ -1,16 +1,17 @@
-#pragma once
+#ifndef ARRAY_H
+#define ARRAY_H
 
-#include <iostream>   // std::ostream
-#include <new>        // std::nothrow
-#include <cassert>    // assert()
-#include <functional> // std::function
+#include <iostream>
+#include <functional>
 #include <initializer_list>
+#include <exception>
 
 template <typename T>
 class Array
 {
 public:
     Array() = default;
+
     explicit Array(const std::size_t length)
         : m_length { length }
         , m_capacity { length }
@@ -53,43 +54,45 @@ public:
     void add(const T& value);
     void add(T&& value);
     void insert(const T& value, std::size_t index);
+    void insert(T&& value, std::size_t index);
     void remove(std::size_t index);
-    void bubbleSort(std::function<bool(const T& a, const T&b)> fn);
-    void selectionSort(std::function<bool(const T& a, const T& b)> fn);
+    void bubbleSort(std::function<bool(const T& a, const T&b)> sortOrder);
+    void selectionSort(std::function<bool(const T& a, const T& b)> sortOrder);
     void reverse();
     void reserve(std::size_t capacity);
     void clear();
     void set(std::size_t index, const T& value);
 
 public:
-    [[nodiscard]] const T& get(std::size_t index) const;
-    [[nodiscard]] const T& getFirst() const;
-    [[nodiscard]] const T& getLast() const;
-    [[nodiscard]] T& getFirst();
-    [[nodiscard]] T& getLast() ;
-    [[nodiscard]] T& get(std::size_t index);
-    [[nodiscard]] std::size_t capacity() const { return m_capacity; }
-    [[nodiscard]] std::size_t length() const { return m_length; }
+    const T& get(std::size_t index) const;
+    const T& getFirst() const;
+    const T& getLast() const;
+    T& getFirst();
+    T& getLast() ;
+    T& get(std::size_t index);
+    std::size_t capacity() const { return m_capacity; }
+    std::size_t length() const { return m_length; }
 
 public:
     T* begin() const { return m_array; }
     T* end() const { return m_array + m_length; }
 
 public:
-    template <typename U>
-    friend std::ostream& operator<<(std::ostream& out, const Array<U>& arr);
     Array& operator=(const Array<T>& arr);
     Array& operator=(Array<T>&& arr) noexcept;
-    Array& operator=(std::initializer_list<T> list);
-    const T& operator[](std::size_t index) const;
-    T& operator[](std::size_t index);
-    bool operator>(const Array<T>& arr) const;
-    bool operator<(const Array<T>& arr) const;
-    bool operator==(const Array<T>& arr) const;
-    bool operator!() const;
+    void operator=(std::initializer_list<T> list);
+    const T& operator[](std::size_t index) const noexcept;
+    T& operator[](std::size_t index) noexcept;
+    bool operator>(const Array<T>& arr) const noexcept;
+    bool operator<(const Array<T>& arr) const noexcept;
+    bool operator==(const Array<T>& arr) const noexcept;
+    explicit operator bool() const noexcept;
+
+    template <typename U>
+    friend std::ostream& operator<<(std::ostream& out, const Array<U>& arr);
 
 private:
-    void moveTo(T*& other);
+    void moveTo(std::reference_wrapper<T*> other);
     void resize();
 
 private:
@@ -102,12 +105,7 @@ template <typename T>
 void Array<T>::resize()
 {
     const std::size_t tempCap { m_capacity == 0 ? 2 : m_capacity*2 };
-    T* temp { new (std::nothrow) T[tempCap] };
-
-    if (!temp) {
-        std::cerr << "ERROR: Memory allocation failed.\n";
-        return;
-    }
+    T* temp { new T[tempCap] };
 
     if (m_array) {
         moveTo(temp);
@@ -119,7 +117,7 @@ void Array<T>::resize()
 }
 
 template <typename T>
-void Array<T>::moveTo(T*& other)
+void Array<T>::moveTo(std::reference_wrapper<T*> other)
 {
     for (std::size_t i{}; i < m_length; ++i) {
         other[i] = std::move(m_array[i]);
@@ -149,13 +147,15 @@ void Array<T>::add(T&& value)
 template <typename T>
 void Array<T>::insert(const T& value, std::size_t index)
 {
-    assert(index <= m_length && "Index out of bounds at insert");
+    if (index > m_length) {
+        throw std::out_of_range{ "ERROR: Index out of bounds at insertion." };
+    }
 
     if (m_length >= m_capacity) {
         resize();
     }
 
-    for (std::size_t i {m_length}; i > index; --i) {
+    for (std::size_t i{ m_length }; i > index; --i) {
         m_array[i] = std::move(m_array[i-1]);
     }
 
@@ -164,9 +164,30 @@ void Array<T>::insert(const T& value, std::size_t index)
 }
 
 template <typename T>
+void Array<T>::insert(T&& value, std::size_t index)
+{
+    if (index > m_length) {
+        throw std::out_of_range{ "ERROR: Index out of bounds at insertion." };
+    }
+
+    if (m_length >= m_capacity) {
+        resize();
+    }
+
+    for (std::size_t i{ m_length }; i > index; --i) {
+        m_array[i] = std::move(m_array[i-1]);
+    }
+
+    m_array[index] = std::move(value);
+    ++m_length;
+}
+
+template <typename T>
 void Array<T>::remove(const std::size_t index)
 {
-    assert(index < m_length && "Index out of bounds at remove.");
+    if (index >= m_length) {
+        throw std::out_of_range{ "ERROR: Index out of bounds at insertion." };
+    }
 
     for (std::size_t i{index}; i < m_length-1; ++i) {
         m_array[i] = std::move(m_array[i+1]);   // this is amazing
@@ -176,14 +197,15 @@ void Array<T>::remove(const std::size_t index)
 }
 
 template <typename T>
-void Array<T>::bubbleSort(std::function<bool(const T& a, const T& b)> fn)
+void Array<T>::bubbleSort(std::function<bool(const T& a, const T& b)> sortOrder)
 {
-    if (m_length == 0) 
-        return;
+    if (m_length == 0) {
+        throw std::runtime_error{ "ERROR: Bubble sort failed. Array contains no elements. "};
+    }
 
     for (std::size_t i{}; i < m_length - 1; ++i) {
         for (std::size_t j{}; j < m_length - 1 - i; ++j) {
-            if (fn(m_array[j], m_array[j+1])) {
+            if (sortOrder(m_array[j], m_array[j+1])) {
                 std::swap(m_array[j], m_array[j+1]);
             }
         }
@@ -191,7 +213,7 @@ void Array<T>::bubbleSort(std::function<bool(const T& a, const T& b)> fn)
 }
 
 template <typename T>
-void Array<T>::selectionSort(std::function<bool(const T& a, const T& b)> fn)
+void Array<T>::selectionSort(std::function<bool(const T& a, const T& b)> sortOrder)
 {
     if (m_length == 0)
         return;
@@ -227,12 +249,7 @@ template <typename T>
 void Array<T>::reserve(const std::size_t capacity)
 {
     if (capacity > m_capacity) {
-        T* temp { new (std::nothrow) T[capacity] };
-
-        if (!temp) {
-            std::cerr << "ERROR: Memory allocation failed.";
-            return;
-        }
+        T* temp { new T[capacity] };
 
         if (m_array)
             moveTo(temp);
@@ -274,28 +291,40 @@ T& Array<T>::get(std::size_t index)
 template <typename T>
 const T& Array<T>::getFirst() const
 {
-    assert(m_length > 0);
+    if (m_length < 0) {
+        throw std::runtime_error { "ERROR: getFirst() failed. Array contains no elements." };
+    }
+
     return m_array[0];
 }
 
 template <typename T>
 const T& Array<T>::getLast() const
 {
-    assert(m_length > 0);
+    if (m_length < 0) {
+        throw std::runtime_error { "ERROR: getLast() failed. Array contains no elements." };
+    }
+
     return m_array[m_length-1];
 }
 
 template <typename T>
 const T& Array<T>::get(std::size_t index) const
 {
-    assert(index < m_length);
+    if (index > m_length) {
+        throw std::out_of_range{ "ERROR: get() failed. Index out of bounds" };
+    }
+
     return m_array[index];
 }
 
 template <typename T>
 void Array<T>::set(std::size_t index, const T& value)
 {
-    assert(index < m_length);
+    if (index >= m_length) {
+        throw std::out_of_range{ "ERROR: set() failed. Index out of bounds" };
+    }
+
     m_array[index] = value;
 }
 
@@ -350,46 +379,43 @@ Array<T>& Array<T>::operator=(Array<T>&& arr) noexcept
 }
 
 template <typename T>
-Array<T>& Array<T>::operator=(std::initializer_list<T> list)
+void Array<T>::operator=(std::initializer_list<T> list)
 {
-    // delete[] m_array;
     clear();
 
     m_capacity = list.size();
     m_length = list.size();
-    m_array = new (std::nothrow) T[m_capacity];
+    m_array = new T[m_capacity];
 
     std::copy(list.begin(), list.end(), m_array);
-    return *this;
 }
 
 template <typename T>
-const T& Array<T>::operator[](std::size_t index) const
+const T& Array<T>::operator[](std::size_t index) const noexcept
 {
     return m_array[index];
 }
 
 template <typename T>
-T& Array<T>::operator[](std::size_t index)
+T& Array<T>::operator[](std::size_t index) noexcept
 {
     return m_array[index];
 }
 
 template <typename T>
-bool Array<T>::operator>(const Array<T>& arr) const
+bool Array<T>::operator>(const Array<T>& arr) const noexcept
 {
     return m_length > arr.m_length;
 }
 
 template <typename T>
-bool Array<T>::operator<(const Array<T>& arr) const
+bool Array<T>::operator<(const Array<T>& arr) const noexcept
 {
     return m_length < arr.m_length;
-
 }
 
 template <typename T>
-bool Array<T>::operator==(const Array<T>& arr) const
+bool Array<T>::operator==(const Array<T>& arr) const noexcept
 {
     if (m_length != arr.m_length) {
         return false;
@@ -405,7 +431,9 @@ bool Array<T>::operator==(const Array<T>& arr) const
 }
 
 template <typename T>
-bool Array<T>::operator!() const
+Array<T>::operator bool() const noexcept
 {
-    return m_array == nullptr;
+    return m_array != nullptr;
 }
+
+#endif
