@@ -222,7 +222,7 @@ void Array<T>::selectionSort(std::function<bool(const T& a, const T& b)> sortOrd
         auto checkpoint { i };
 
         for (std::size_t j{i}; j < m_length; ++j) {
-            if (fn(m_array[j], m_array[checkpoint])) {
+            if (sortOrder(m_array[j], m_array[checkpoint])) {
                 checkpoint = j;
             }
         }
