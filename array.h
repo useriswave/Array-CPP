@@ -53,23 +53,23 @@ public:
 public:
     void add(const T& value);
     void add(T&& value);
-    void insert(const T& value, std::size_t index);
-    void insert(T&& value, std::size_t index);
-    void remove(std::size_t index);
+    void insert(const T& value, const std::size_t index);
+    void insert(T&& value, const std::size_t index);
+    void remove(const std::size_t index);
     void bubbleSort(std::function<bool(const T& a, const T&b)> sortOrder);
     void selectionSort(std::function<bool(const T& a, const T& b)> sortOrder);
     void reverse();
-    void reserve(std::size_t capacity);
+    void reserve(const std::size_t capacity);
     void clear();
-    void set(std::size_t index, const T& value);
+    void set(const std::size_t index, const T& value);
 
 public:
-    const T& get(std::size_t index) const;
+    const T& get(const std::size_t index) const;
     const T& getFirst() const;
     const T& getLast() const;
     T& getFirst();
     T& getLast() ;
-    T& get(std::size_t index);
+    T& get(const std::size_t index);
     std::size_t capacity() const { return m_capacity; }
     std::size_t length() const { return m_length; }
 
@@ -81,8 +81,8 @@ public:
     Array& operator=(const Array<T>& arr);
     Array& operator=(Array<T>&& arr) noexcept;
     void operator=(std::initializer_list<T> list);
-    const T& operator[](std::size_t index) const noexcept;
-    T& operator[](std::size_t index) noexcept;
+    const T& operator[](const std::size_t index) const noexcept;
+    T& operator[](const std::size_t index) noexcept;
     bool operator>(const Array<T>& arr) const noexcept;
     bool operator<(const Array<T>& arr) const noexcept;
     bool operator==(const Array<T>& arr) const noexcept;
@@ -145,7 +145,7 @@ void Array<T>::add(T&& value)
 }
 
 template <typename T>
-void Array<T>::insert(const T& value, std::size_t index)
+void Array<T>::insert(const T& value, const std::size_t index)
 {
     if (index > m_length) {
         throw std::out_of_range{ "ERROR: Index out of bounds at insertion." };
@@ -164,7 +164,7 @@ void Array<T>::insert(const T& value, std::size_t index)
 }
 
 template <typename T>
-void Array<T>::insert(T&& value, std::size_t index)
+void Array<T>::insert(T&& value, const std::size_t index)
 {
     if (index > m_length) {
         throw std::out_of_range{ "ERROR: Index out of bounds at insertion." };
@@ -283,7 +283,7 @@ T& Array<T>::getLast()
 }
 
 template <typename T>
-T& Array<T>::get(std::size_t index)
+T& Array<T>::get(const std::size_t index)
 {
     return get();
 }
@@ -309,7 +309,7 @@ const T& Array<T>::getLast() const
 }
 
 template <typename T>
-const T& Array<T>::get(std::size_t index) const
+const T& Array<T>::get(const std::size_t index) const
 {
     if (index > m_length) {
         throw std::out_of_range{ "ERROR: get() failed. Index out of bounds" };
@@ -319,7 +319,7 @@ const T& Array<T>::get(std::size_t index) const
 }
 
 template <typename T>
-void Array<T>::set(std::size_t index, const T& value)
+void Array<T>::set(const std::size_t index, const T& value)
 {
     if (index >= m_length) {
         throw std::out_of_range{ "ERROR: set() failed. Index out of bounds" };
@@ -391,13 +391,13 @@ void Array<T>::operator=(std::initializer_list<T> list)
 }
 
 template <typename T>
-const T& Array<T>::operator[](std::size_t index) const noexcept
+const T& Array<T>::operator[](const std::size_t index) const noexcept
 {
     return m_array[index];
 }
 
 template <typename T>
-T& Array<T>::operator[](std::size_t index) noexcept
+T& Array<T>::operator[](const std::size_t index) noexcept
 {
     return m_array[index];
 }
